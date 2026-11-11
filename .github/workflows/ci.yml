@@ -1,0 +1,29 @@
+name: checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Python tests
+        run: python -m unittest discover -p '*_test.py'
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+      - name: Build isolated macOS installation without starting services
+        if: runner.os == 'macOS'
+        env:
+          TEST_CONTROLLER_SECRET: ''
+        run: |
+          python install.py --controller-url http://127.0.0.1:9090 \
+            --secret-env TEST_CONTROLLER_SECRET --no-start \
+            --runtime "$RUNNER_TEMP/ProxyTrafficMeter" \
+            --apps-dir "$RUNNER_TEMP/Applications" \
+            --agents-dir "$RUNNER_TEMP/LaunchAgents"
